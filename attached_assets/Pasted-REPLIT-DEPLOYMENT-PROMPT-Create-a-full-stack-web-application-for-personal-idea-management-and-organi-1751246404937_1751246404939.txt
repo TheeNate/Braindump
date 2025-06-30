@@ -1,0 +1,222 @@
+REPLIT DEPLOYMENT PROMPT
+Create a full-stack web application for personal idea management and organization. This is a sophisticated brain dump tool with AI-powered categorization and cross-category intelligence analysis.
+
+## EXACT FUNCTIONALITY REQUIREMENTS
+
+### Core Features
+1. **Idea Capture Interface**
+   - Large textarea for typing ideas (3 rows minimum)
+   - Voice input button using Web Speech API (webkitSpeechRecognition)
+   - Real-time transcription display in textarea
+   - Submit button (Enter key or click)
+   - Visual feedback for recording state (red when active)
+
+2. **AI-Powered Categorization**
+   - Automatic categorization into 5 predefined themes:
+     - Progress & Growth (green theme, TrendingUp icon)
+     - Value Creation (blue theme, Target icon) 
+     - Energy/Bitcoin (yellow theme, Zap icon)
+     - Human Optimization (purple theme, Brain icon)
+     - Needs Processing (gray theme, FileText icon)
+   - Confidence scoring (0-100%)
+   - Context-aware analysis using previous similar ideas
+   - Enhanced insights: key insights, related patterns, context connections
+
+3. **Manual Override System**
+   - Ideas below 50% confidence flagged with orange borders
+   - Manual recategorization modal with radio button selection
+   - User feedback collection for AI learning
+   - Manual categorizations get 100% confidence
+   - Color-coded confidence: Green (70%+), Yellow (50-70%), Red (<50%)
+
+4. **Idea Display & Organization**
+   - Collapsible cards grouped by category
+   - Two-level expansion:
+     Level 1: AI analysis, action buttons, insights
+     Level 2: Full original text (if truncated)
+   - Truncated preview (80 characters) in collapsed state
+   - Category icons and color coding throughout
+
+5. **Individual Idea Features**
+   - AI Iteration Chat: Focused brainstorming on specific idea
+   - Discussion Interface: Nate/Janae collaborative chat
+   - Recategorization controls
+   - Delete functionality
+   - Timestamp display
+
+6. **Master Intelligence System**
+   - Separate tab from main capture interface
+   - Master AI Chat: Queries across all ideas and categories
+   - Analytics Dashboard: Category distribution, patterns, metrics
+   - Cross-category pattern recognition
+   - Temporal analysis capabilities
+
+### Technical Architecture
+
+#### Frontend (React)
+- Single-page application with tab navigation
+- Two main views: "Capture Ideas" and "Master Intelligence"
+- Responsive design using Tailwind CSS
+- Icons from Lucide React
+- Modal system for overlays (AI chat, discussion, recategorization)
+
+#### Backend (Node.js/Express)
+- RESTful API endpoints:
+  - POST /api/ideas - Create new idea
+  - GET /api/ideas - Retrieve all ideas
+  - PUT /api/ideas/:id - Update idea (recategorization)
+  - DELETE /api/ideas/:id - Delete idea
+  - POST /api/ai/categorize - AI categorization
+  - POST /api/ai/iterate - AI iteration chat
+  - POST /api/ai/master - Master intelligence queries
+
+#### Database Schema (PostgreSQL)
+```sql
+CREATE TABLE ideas (
+  id SERIAL PRIMARY KEY,
+  text TEXT NOT NULL,
+  category VARCHAR(50) DEFAULT 'uncategorized',
+  confidence DECIMAL(3,2) DEFAULT 0,
+  reasoning TEXT,
+  key_insights JSONB DEFAULT '[]',
+  related_patterns JSONB DEFAULT '[]',
+  context_connections JSONB DEFAULT '[]',
+  user_feedback TEXT,
+  manually_recategorized BOOLEAN DEFAULT FALSE,
+  created_at TIMESTAMP DEFAULT NOW(),
+  updated_at TIMESTAMP DEFAULT NOW()
+);
+
+CREATE TABLE discussions (
+  id SERIAL PRIMARY KEY,
+  idea_id INTEGER REFERENCES ideas(id) ON DELETE CASCADE,
+  sender VARCHAR(10) NOT NULL, -- 'nate' or 'janae'
+  content TEXT NOT NULL,
+  created_at TIMESTAMP DEFAULT NOW()
+);
+
+CREATE TABLE ai_iterations (
+  id SERIAL PRIMARY KEY,
+  idea_id INTEGER REFERENCES ideas(id) ON DELETE CASCADE,
+  role VARCHAR(10) NOT NULL, -- 'user' or 'assistant'
+  content TEXT NOT NULL,
+  created_at TIMESTAMP DEFAULT NOW()
+);
+AI Integration (Claude API)
+    • Environment variable: CLAUDE_API_KEY 
+    • Three AI endpoints: 
+        1. Categorization: Analyzes new ideas with context from similar existing ideas 
+        2. Iteration: Focused development conversation on specific ideas 
+        3. Master Intelligence: Cross-category analysis and strategic insights 
+Detailed Component Specifications
+Main Navigation
+    • Header with app title: "Brain Dump & Idea Organizer" 
+    • Two tab buttons: 
+        ◦ "Capture Ideas" (Plus icon, blue when active) 
+        ◦ "Master Intelligence" (Network icon, purple when active) 
+Capture Ideas View
+    • Input section with textarea and voice/submit buttons 
+    • Category statistics grid (5 boxes with counts) 
+    • Manual review alert banner (when needed) 
+    • Category sections with expandable idea cards 
+Idea Cards
+    • Collapsed: Category icon, truncated text, confidence badge, action buttons 
+    • Expanded Level 1: Full analysis, insights, action buttons 
+    • Expanded Level 2: Complete original text 
+    • Color coding: Orange border for low confidence ideas 
+Master Intelligence View
+    • Two sub-tabs: "Intelligence Chat" and "Analytics" 
+    • Chat: Conversational AI with access to all ideas 
+    • Analytics: Visual metrics, category distribution, pattern analysis 
+Modals
+    • Recategorization: Radio buttons for categories, feedback textarea 
+    • AI Iteration: Full-screen chat interface for idea development 
+    • Discussion: Nate/Janae chat with sender toggle 
+AI Prompt Engineering
+Categorization Prompt Template
+Analyze this idea and categorize it into one of these themes:
+1. "progress" - Personal growth, relationship development, continuous improvement
+2. "value" - Business opportunities, making money, solving problems for profit
+3. "energy" - Energy sector insights, bitcoin mining, stranded energy, cryptocurrency
+4. "human" - Human optimization, purpose, resistance training, helping people achieve potential
+5. "uncategorized" - If it doesn't clearly fit the above themes
+
+New Idea: "{ideaText}"
+
+RELEVANT CONTEXT from previous ideas:
+{contextFromSimilarIdeas}
+
+Respond with ONLY a JSON object:
+{
+  "category": "progress",
+  "confidence": 0.85,
+  "reasoning": "Brief explanation including context connections",
+  "keyInsights": ["insight1", "insight2"],
+  "relatedPatterns": ["pattern1", "pattern2"],
+  "contextConnections": ["connection1", "connection2"]
+}
+Master Intelligence Prompt Template
+You are a Master Intelligence AI analyzing patterns across all user ideas.
+
+COMPLETE IDEA DATABASE: {allIdeasWithMetadata}
+CATEGORY STATISTICS: {categoryStats}
+CONVERSATION HISTORY: {chatHistory}
+
+Provide strategic insights, cross-category connections, and pattern analysis.
+Reference specific ideas when making connections.
+Required Environment Variables
+CLAUDE_API_KEY=your_anthropic_api_key
+DATABASE_URL=postgresql://username:password@host:port/database
+NODE_ENV=development
+PORT=3000
+Package Dependencies
+{
+  "dependencies": {
+    "react": "^18.0.0",
+    "react-dom": "^18.0.0",
+    "express": "^4.18.0",
+    "pg": "^8.8.0",
+    "cors": "^2.8.5",
+    "lucide-react": "^0.263.1",
+    "tailwindcss": "^3.3.0",
+    "anthropic": "^0.20.0"
+  }
+}
+File Structure
+/
+├── client/
+│   ├── src/
+│   │   ├── components/
+│   │   │   ├── IdeaCard.jsx
+│   │   │   ├── MasterIntelligence.jsx
+│   │   │   ├── RecategorizationModal.jsx
+│   │   │   ├── AiIterateChat.jsx
+│   │   │   └── DiscussionChat.jsx
+│   │   ├── App.jsx
+│   │   └── index.js
+│   ├── public/
+│   └── package.json
+├── server/
+│   ├── routes/
+│   │   ├── ideas.js
+│   │   └── ai.js
+│   ├── db/
+│   │   └── schema.sql
+│   ├── app.js
+│   └── package.json
+└── README.md
+Critical Implementation Notes
+    1. Similarity Search: Implement basic keyword matching for finding related ideas 
+    2. Context Window Management: Send last 15 similar ideas for categorization context 
+    3. Error Handling: Graceful fallbacks for AI failures 
+    4. Real-time Updates: UI updates immediately, AI processing in background 
+    5. Data Persistence: All interactions saved to database 
+    6. Voice Input: Only show voice button if browser supports it 
+UI/UX Requirements
+    • Responsive design (mobile-friendly) 
+    • Loading states for AI processing 
+    • Visual feedback for all interactions 
+    • Consistent color scheme matching the artifact 
+    • Professional, clean design aesthetic 
+    • Fast interactions with background AI processing 
+Build this exactly as specified. Every feature mentioned must be implemented. The goal is a production-ready personal intelligence system for systematic idea development and cross-category insight discovery.
