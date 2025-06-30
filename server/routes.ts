@@ -6,6 +6,18 @@ import { insertIdeaSchema, insertDiscussionSchema, insertAiIterationSchema } fro
 import { z } from "zod";
 
 export async function registerRoutes(app: Express): Promise<Server> {
+  // Debug endpoint for environment variables
+  app.get('/api/debug-env', (req, res) => {
+    res.json({
+      hasOpenAI: !!process.env.OPENAI_API_KEY,
+      hasPinecone: !!process.env.PINECONE_API_KEY,
+      openAIKeyPrefix: process.env.OPENAI_API_KEY?.substring(0, 10) + '...',
+      pineconeKeyPrefix: process.env.PINECONE_API_KEY?.substring(0, 10) + '...',
+      indexName: process.env.PINECONE_INDEX_NAME || 'ideas-index',
+      nodeEnv: process.env.NODE_ENV
+    });
+  });
+
   // Ideas endpoints
   app.post("/api/ideas", async (req, res) => {
     try {

@@ -1,6 +1,20 @@
 import { ideas, discussions, aiIterations, type Idea, type InsertIdea, type Discussion, type InsertDiscussion, type AiIteration, type InsertAiIteration } from "@shared/schema";
 import { db } from "./db";
 import { eq, desc, like, or } from "drizzle-orm";
+import OpenAI from 'openai';
+import { Pinecone } from '@pinecone-database/pinecone';
+
+// Initialize OpenAI client
+const openai = new OpenAI({
+  apiKey: process.env.OPENAI_API_KEY,
+});
+
+// Initialize Pinecone client
+const pinecone = new Pinecone({
+  apiKey: process.env.PINECONE_API_KEY!,
+});
+
+const PINECONE_INDEX = process.env.PINECONE_INDEX_NAME || 'ideas-index';
 
 export interface IStorage {
   // Ideas
@@ -28,6 +42,8 @@ export interface IStorage {
 
 export class DatabaseStorage implements IStorage {
   async createIdea(idea: InsertIdea): Promise<Idea> {
+    console.log('🚀 Starting createIdea for:', idea.text.substring(0, 50) + '...');
+    
     const [newIdea] = await db
       .insert(ideas)
       .values({
@@ -36,11 +52,16 @@ export class DatabaseStorage implements IStorage {
       })
       .returning();
     
+    console.log('✅ Idea saved to database with ID:', newIdea.id);
+    
     // Store vector embedding
     try {
+      console.log('🔄 Attempting to store vector embedding...');
       await this.storeIdeaVector(newIdea.id, newIdea.text);
+      console.log('✅ Vector embedding stored successfully');
     } catch (error) {
-      console.error('Failed to store vector embedding:', error);
+      console.error('❌ Failed to store vector embedding:', error);
+      console.error('❌ Full error details:', error);
     }
     
     return newIdea;
@@ -144,26 +165,47 @@ export class DatabaseStorage implements IStorage {
   }
 
   async createEmbedding(text: string): Promise<number[]> {
-    const response = await openai.embeddings.create({
-      model: 'text-embedding-ada-002',
-      input: text,
-    });
+    console.log('🔄 Creating embedding for text:', text.substring(0, 100) + '...');
+    console.log('🔑 OpenAI API key available:', !!process.env.OPENAI_API_KEY);
     
-    return response.data[0].embedding;
+    try {
+      const response = await openai.embeddings.create({
+        model: 'text-embedding-ada-002',
+        input: text,
+      });
+      
+      console.log('✅ Embedding created, length:', response.data[0].embedding.length);
+      return response.data[0].embedding;
+    } catch (error) {
+      console.error('❌ Failed to create embedding:', error);
+      throw error;
+    }
   }
 
   async storeIdeaVector(ideaId: number, text: string): Promise<void> {
-    const embedding = await this.createEmbedding(text);
-    const index = pinecone.index(PINECONE_INDEX);
+    console.log('🔄 Storing vector for idea ID:', ideaId);
+    console.log('🔑 Pinecone API key available:', !!process.env.PINECONE_API_KEY);
+    console.log('🗂️ Using index name:', PINECONE_INDEX);
     
-    await index.upsert([{
-      id: ideaId.toString(),
-      values: embedding,
-      metadata: {
-        text: text.substring(0, 1000), // Store truncated text as metadata
-        ideaId: ideaId,
-      }
-    }]);
+    try {
+      const embedding = await this.createEmbedding(text);
+      const index = pinecone.index(PINECONE_INDEX);
+      
+      console.log('🔄 Upserting to Pinecone...');
+      await index.upsert([{
+        id: ideaId.toString(),
+        values: embedding,
+        metadata: {
+          text: text.substring(0, 1000), // Store truncated text as metadata
+          ideaId: ideaId,
+        }
+      }]);
+      
+      console.log('✅ Vector stored in Pinecone successfully');
+    } catch (error) {
+      console.error('❌ Failed to store vector in Pinecone:', error);
+      throw error;
+    }
   }
 
   async findSimilarVectors(text: string, limit = 15): Promise<Idea[]> {
