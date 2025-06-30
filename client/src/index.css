@@ -1,0 +1,144 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --background: hsl(0, 0%, 100%);
+  --foreground: hsl(20, 14.3%, 4.1%);
+  --muted: hsl(60, 4.8%, 95.9%);
+  --muted-foreground: hsl(25, 5.3%, 44.7%);
+  --popover: hsl(0, 0%, 100%);
+  --popover-foreground: hsl(20, 14.3%, 4.1%);
+  --card: hsl(0, 0%, 100%);
+  --card-foreground: hsl(20, 14.3%, 4.1%);
+  --border: hsl(20, 5.9%, 90%);
+  --input: hsl(20, 5.9%, 90%);
+  --primary: hsl(207, 90%, 54%);
+  --primary-foreground: hsl(211, 100%, 99%);
+  --secondary: hsl(60, 4.8%, 95.9%);
+  --secondary-foreground: hsl(24, 9.8%, 10%);
+  --accent: hsl(60, 4.8%, 95.9%);
+  --accent-foreground: hsl(24, 9.8%, 10%);
+  --destructive: hsl(0, 84.2%, 60.2%);
+  --destructive-foreground: hsl(60, 9.1%, 97.8%);
+  --ring: hsl(20, 14.3%, 4.1%);
+  --radius: 0.5rem;
+  
+  /* Custom category colors */
+  --progress-50: hsl(151, 81%, 96%);
+  --progress-200: hsl(151, 81%, 85%);
+  --progress-500: hsl(158, 64%, 52%);
+  
+  --value-50: hsl(214, 100%, 97%);
+  --value-200: hsl(214, 100%, 87%);
+  --value-500: hsl(221, 83%, 53%);
+  
+  --energy-50: hsl(49, 100%, 96%);
+  --energy-200: hsl(49, 100%, 85%);
+  --energy-500: hsl(45, 93%, 47%);
+  
+  --human-50: hsl(253, 100%, 97%);
+  --human-200: hsl(253, 100%, 88%);
+  --human-500: hsl(258, 90%, 66%);
+  
+  --processing-50: hsl(210, 20%, 98%);
+  --processing-200: hsl(210, 20%, 88%);
+  --processing-500: hsl(215, 16%, 47%);
+}
+
+.dark {
+  --background: hsl(240, 10%, 3.9%);
+  --foreground: hsl(0, 0%, 98%);
+  --muted: hsl(240, 3.7%, 15.9%);
+  --muted-foreground: hsl(240, 5%, 64.9%);
+  --popover: hsl(240, 10%, 3.9%);
+  --popover-foreground: hsl(0, 0%, 98%);
+  --card: hsl(240, 10%, 3.9%);
+  --card-foreground: hsl(0, 0%, 98%);
+  --border: hsl(240, 3.7%, 15.9%);
+  --input: hsl(240, 3.7%, 15.9%);
+  --primary: hsl(207, 90%, 54%);
+  --primary-foreground: hsl(211, 100%, 99%);
+  --secondary: hsl(240, 3.7%, 15.9%);
+  --secondary-foreground: hsl(0, 0%, 98%);
+  --accent: hsl(240, 3.7%, 15.9%);
+  --accent-foreground: hsl(0, 0%, 98%);
+  --destructive: hsl(0, 62.8%, 30.6%);
+  --destructive-foreground: hsl(0, 0%, 98%);
+  --ring: hsl(240, 4.9%, 83.9%);
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply font-sans antialiased bg-background text-foreground;
+  }
+}
+
+/* Custom animations */
+@keyframes pulse {
+  0%, 100% { 
+    opacity: 1; 
+  }
+  50% { 
+    opacity: 0.5; 
+  }
+}
+
+.recording-pulse {
+  animation: pulse 1.5s ease-in-out infinite;
+}
+
+/* Confidence indicators */
+.confidence-high {
+  border-left: 4px solid var(--progress-500);
+}
+
+.confidence-medium {
+  border-left: 4px solid var(--energy-500);
+}
+
+.confidence-low {
+  border-left: 4px solid hsl(0, 84.2%, 60.2%);
+}
+
+/* Custom category colors as utilities */
+@layer utilities {
+  .bg-progress-50 { background-color: var(--progress-50); }
+  .bg-progress-200 { background-color: var(--progress-200); }
+  .bg-progress-500 { background-color: var(--progress-500); }
+  .border-progress-200 { border-color: var(--progress-200); }
+  .border-progress-500 { border-color: var(--progress-500); }
+  .text-progress-500 { color: var(--progress-500); }
+  
+  .bg-value-50 { background-color: var(--value-50); }
+  .bg-value-200 { background-color: var(--value-200); }
+  .bg-value-500 { background-color: var(--value-500); }
+  .border-value-200 { border-color: var(--value-200); }
+  .border-value-500 { border-color: var(--value-500); }
+  .text-value-500 { color: var(--value-500); }
+  
+  .bg-energy-50 { background-color: var(--energy-50); }
+  .bg-energy-200 { background-color: var(--energy-200); }
+  .bg-energy-500 { background-color: var(--energy-500); }
+  .border-energy-200 { border-color: var(--energy-200); }
+  .border-energy-500 { border-color: var(--energy-500); }
+  .text-energy-500 { color: var(--energy-500); }
+  
+  .bg-human-50 { background-color: var(--human-50); }
+  .bg-human-200 { background-color: var(--human-200); }
+  .bg-human-500 { background-color: var(--human-500); }
+  .border-human-200 { border-color: var(--human-200); }
+  .border-human-500 { border-color: var(--human-500); }
+  .text-human-500 { color: var(--human-500); }
+  
+  .bg-processing-50 { background-color: var(--processing-50); }
+  .bg-processing-200 { background-color: var(--processing-200); }
+  .bg-processing-500 { background-color: var(--processing-500); }
+  .border-processing-200 { border-color: var(--processing-200); }
+  .border-processing-500 { border-color: var(--processing-500); }
+  .text-processing-500 { color: var(--processing-500); }
+}
