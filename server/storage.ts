@@ -1,6 +1,19 @@
 import { ideas, discussions, aiIterations, type Idea, type InsertIdea, type Discussion, type InsertDiscussion, type AiIteration, type InsertAiIteration } from "@shared/schema";
 import { db } from "./db";
 import { eq, desc, like, or } from "drizzle-orm";
+import { Pinecone } from '@pinecone-database/pinecone';
+import OpenAI from 'openai';
+
+// Initialize Pinecone and OpenAI
+const pinecone = new Pinecone({
+  apiKey: process.env.PINECONE_API_KEY!,
+});
+
+const openai = new OpenAI({
+  apiKey: process.env.OPENAI_API_KEY!,
+});
+
+const PINECONE_INDEX = process.env.PINECONE_INDEX || 'brain-dumps';
 
 export interface IStorage {
   // Ideas
@@ -10,6 +23,12 @@ export interface IStorage {
   updateIdea(id: number, updates: Partial<InsertIdea>): Promise<Idea | undefined>;
   deleteIdea(id: number): Promise<boolean>;
   getSimilarIdeas(text: string, limit?: number): Promise<Idea[]>;
+  
+  // Vector operations
+  createEmbedding(text: string): Promise<number[]>;
+  storeIdeaVector(ideaId: number, text: string): Promise<void>;
+  findSimilarVectors(text: string, limit?: number): Promise<Idea[]>;
+  deleteIdeaVector(ideaId: number): Promise<void>;
   
   // Discussions
   createDiscussion(discussion: InsertDiscussion): Promise<Discussion>;
@@ -29,6 +48,14 @@ export class DatabaseStorage implements IStorage {
         updatedAt: new Date(),
       })
       .returning();
+    
+    // Store vector embedding
+    try {
+      await this.storeIdeaVector(newIdea.id, newIdea.text);
+    } catch (error) {
+      console.error('Failed to store vector embedding:', error);
+    }
+    
     return newIdea;
   }
 
@@ -60,6 +87,13 @@ export class DatabaseStorage implements IStorage {
   }
 
   async deleteIdea(id: number): Promise<boolean> {
+    // Delete vector embedding first
+    try {
+      await this.deleteIdeaVector(id);
+    } catch (error) {
+      console.error('Failed to delete vector embedding:', error);
+    }
+    
     const result = await db
       .delete(ideas)
       .where(eq(ideas.id, id));
@@ -67,19 +101,27 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getSimilarIdeas(text: string, limit = 15): Promise<Idea[]> {
-    const keywords = text.toLowerCase().split(' ').filter(word => word.length > 3);
-    if (keywords.length === 0) return [];
-    
-    const conditions = keywords.map(keyword => 
-      like(ideas.text, `%${keyword}%`)
-    );
-    
-    return await db
-      .select()
-      .from(ideas)
-      .where(or(...conditions))
-      .orderBy(desc(ideas.createdAt))
-      .limit(limit);
+    try {
+      // Use vector similarity search for semantic matching
+      return await this.findSimilarVectors(text, limit);
+    } catch (error) {
+      console.error('Vector search failed, falling back to keyword search:', error);
+      
+      // Fallback to keyword search if vector search fails
+      const keywords = text.toLowerCase().split(' ').filter(word => word.length > 3);
+      if (keywords.length === 0) return [];
+      
+      const conditions = keywords.map(keyword => 
+        like(ideas.text, `%${keyword}%`)
+      );
+      
+      return await db
+        .select()
+        .from(ideas)
+        .where(or(...conditions))
+        .orderBy(desc(ideas.createdAt))
+        .limit(limit);
+    }
   }
 
   async createDiscussion(discussion: InsertDiscussion): Promise<Discussion> {
@@ -112,6 +154,62 @@ export class DatabaseStorage implements IStorage {
       .from(aiIterations)
       .where(eq(aiIterations.ideaId, ideaId))
       .orderBy(aiIterations.createdAt);
+  }
+
+  async createEmbedding(text: string): Promise<number[]> {
+    const response = await openai.embeddings.create({
+      model: 'text-embedding-ada-002',
+      input: text,
+    });
+    
+    return response.data[0].embedding;
+  }
+
+  async storeIdeaVector(ideaId: number, text: string): Promise<void> {
+    const embedding = await this.createEmbedding(text);
+    const index = pinecone.index(PINECONE_INDEX);
+    
+    await index.upsert([{
+      id: ideaId.toString(),
+      values: embedding,
+      metadata: {
+        text: text.substring(0, 1000), // Store truncated text as metadata
+        ideaId: ideaId,
+      }
+    }]);
+  }
+
+  async findSimilarVectors(text: string, limit = 15): Promise<Idea[]> {
+    const embedding = await this.createEmbedding(text);
+    const index = pinecone.index(PINECONE_INDEX);
+    
+    const queryResponse = await index.query({
+      vector: embedding,
+      topK: limit,
+      includeMetadata: true,
+    });
+
+    // Get the idea IDs from Pinecone results
+    const ideaIds = queryResponse.matches
+      ?.filter(match => match.score && match.score > 0.7) // Filter by similarity threshold
+      .map(match => parseInt(match.id))
+      .filter(id => !isNaN(id)) || [];
+
+    if (ideaIds.length === 0) return [];
+
+    // Fetch full idea details from PostgreSQL
+    const similarIdeas = await db
+      .select()
+      .from(ideas)
+      .where(or(...ideaIds.map(id => eq(ideas.id, id))))
+      .orderBy(desc(ideas.createdAt));
+
+    return similarIdeas;
+  }
+
+  async deleteIdeaVector(ideaId: number): Promise<void> {
+    const index = pinecone.index(PINECONE_INDEX);
+    await index.deleteOne(ideaId.toString());
   }
 }
 
