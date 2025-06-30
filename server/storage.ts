@@ -63,7 +63,7 @@ export class DatabaseStorage implements IStorage {
     const result = await db
       .delete(ideas)
       .where(eq(ideas.id, id));
-    return result.rowCount > 0;
+    return (result.rowCount ?? 0) > 0;
   }
 
   async getSimilarIdeas(text: string, limit = 15): Promise<Idea[]> {

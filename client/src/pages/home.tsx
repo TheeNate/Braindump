@@ -259,13 +259,14 @@ export default function Home() {
             {/* Category Statistics */}
             <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4">
               {categoryStats.map((category) => {
-                const Icon = {
+                const iconMap = {
                   TrendingUp,
                   Target,
                   Zap,
                   Brain,
                   FileText,
-                }[category.icon as keyof typeof { TrendingUp: any; Target: any; Zap: any; Brain: any; FileText: any }];
+                };
+                const Icon = iconMap[category.icon as keyof typeof iconMap];
                 
                 return (
                   <Card key={category.id} className={`${category.bgColor} ${category.borderColor} border text-center`}>
