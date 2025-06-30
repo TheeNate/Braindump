@@ -1,19 +1,6 @@
 import { ideas, discussions, aiIterations, type Idea, type InsertIdea, type Discussion, type InsertDiscussion, type AiIteration, type InsertAiIteration } from "@shared/schema";
 import { db } from "./db";
 import { eq, desc, like, or } from "drizzle-orm";
-import { Pinecone } from '@pinecone-database/pinecone';
-import OpenAI from 'openai';
-
-// Initialize Pinecone and OpenAI
-const pinecone = new Pinecone({
-  apiKey: process.env.PINECONE_API_KEY!,
-});
-
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY!,
-});
-
-const PINECONE_INDEX = process.env.PINECONE_INDEX || 'brain-dumps';
 
 export interface IStorage {
   // Ideas
